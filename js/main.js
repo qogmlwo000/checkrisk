@@ -56,13 +56,51 @@ function bindInputs() {
 
   // 캡처 버튼 — body 전역 위임 (동적 생성 그룹 캡처 버튼 포함)
   document.body.addEventListener("click", (e) => {
-    const btn = e.target.closest(".capture-btn");
-    if (!btn) return;
-    const target = btn.dataset.target;
-    const includeHeader = btn.dataset.includeHeader !== "false";
-    window.captureToClipboard(target, { includeHeader });
+    const cap = e.target.closest(".capture-btn");
+    if (cap) {
+      const target = cap.dataset.target;
+      const includeHeader = cap.dataset.includeHeader !== "false";
+      window.captureToClipboard(target, { includeHeader });
+      return;
+    }
+    const rst = e.target.closest(".reset-btn");
+    if (rst) handleReset(rst);
   });
 }
+
+function handleReset(btn) {
+  // 대상 결정 + 라벨
+  let inputs = [], label = "";
+  if (btn.dataset.resetGroup) {
+    const grp = btn.dataset.resetGroup;
+    const root = document.querySelector(`.pack-group[data-capture-group="${cssE(grp)}"]`);
+    if (!root) return;
+    inputs = root.querySelectorAll("input, select");
+    label = grp;
+  } else if (btn.dataset.resetTarget) {
+    const t = document.getElementById(btn.dataset.resetTarget);
+    if (!t) return;
+    inputs = t.querySelectorAll("input, select");
+    label = btn.dataset.resetTarget === "pickCard" ? "PICK" : btn.dataset.resetTarget;
+  } else {
+    return;
+  }
+
+  if (!confirm(`${label} 입력값을 모두 초기화하시겠습니까?\n(실시간 공유 중인 다른 사용자 화면도 함께 초기화됩니다.)`)) return;
+
+  inputs.forEach(el => {
+    if (el.tagName === "SELECT") el.value = "-";
+    else el.value = "";
+  });
+
+  // 재계산 + 원격 동기화
+  window.recomputePack && window.recomputePack();
+  window.recomputePick && window.recomputePick();
+  window.onLocalChange && window.onLocalChange();
+
+  if (window.showToast) window.showToast(`✅ ${label} 초기화 완료`, "ok");
+}
+function cssE(s) { return (window.CSS && CSS.escape) ? CSS.escape(s) : s.replace(/"/g, '\\"'); }
 
 function bindTabs() {
   const btns = document.querySelectorAll(".tab-btn");

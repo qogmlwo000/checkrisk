@@ -47,12 +47,23 @@ window.renderPackTables = function () {
     titleInner.appendChild(titleText);
     title.appendChild(titleInner);
 
+    const grpActions = document.createElement("span");
+    grpActions.style.cssText = "display:inline-flex;gap:6px;align-items:center;";
+
+    const grpResetBtn = document.createElement("button");
+    grpResetBtn.className = "reset-btn";
+    grpResetBtn.dataset.resetGroup = group.name;
+    grpResetBtn.textContent = `🗑 ${group.name} 초기화`;
+    grpActions.appendChild(grpResetBtn);
+
     const grpCapBtn = document.createElement("button");
     grpCapBtn.className = "capture-btn capture-btn-sm";
     grpCapBtn.dataset.target = wrap.id;
     grpCapBtn.dataset.includeHeader = "true";
     grpCapBtn.textContent = `📋 ${group.name} 캡처 복사`;
-    title.appendChild(grpCapBtn);
+    grpActions.appendChild(grpCapBtn);
+
+    title.appendChild(grpActions);
 
     wrap.appendChild(title);
 

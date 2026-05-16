@@ -303,6 +303,22 @@ main {
 .capture-btn:active { transform: scale(0.97); }
 .capture-btn-sm { font-size: 11.5px; padding: 4px 10px; }
 
+.reset-btn {
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--danger);
+  background: transparent;
+  color: var(--danger);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, transform 0.05s;
+  white-space: nowrap;
+}
+.reset-btn:hover { background: var(--danger); color: #fff; }
+.reset-btn:active { transform: scale(0.95); }
+
 /* ============== PACK ============== */
 .pack-groups { display: flex; flex-direction: column; gap: 12px; }
 
