@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Check Risk · PACK / PICK</title>
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="ticker" id="ticker" aria-live="polite">
+    <div class="ticker-track">
+      <span>⚠ AI 가이드는 참고용일 뿐입니다. 최종 판단과 책임은 운영자 본인에게 있습니다. ⚠</span>
+      <span>⚠ AI 가이드는 참고용일 뿐입니다. 최종 판단과 책임은 운영자 본인에게 있습니다. ⚠</span>
+      <span>⚠ AI 가이드는 참고용일 뿐입니다. 최종 판단과 책임은 운영자 본인에게 있습니다. ⚠</span>
+    </div>
+  </div>
+
+  <header class="topbar" id="topbar">
+    <div class="topbar-left">
+      <div class="now-clock" id="nowClock">--:--:--</div>
+      <div class="now-date" id="nowDate">----.--.--</div>
+    </div>
+
+    <div class="topbar-center" id="topbarCenter">
+      <div class="exsd-label">다음 Exsd</div>
+      <div class="exsd-time" id="nextExsd">--:--</div>
+      <div class="exsd-countdown" id="countdown">--:--:--</div>
+    </div>
+
+    <div class="topbar-right">
+      <div class="exsd-chips" id="exsdChips"></div>
+      <div class="topbar-actions">
+        <span class="sync-dot" id="syncDot" title="Firebase 연결 대기">●</span>
+        <button class="theme-toggle" id="themeToggle" title="라이트/다크 전환">🌙</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- ============ PACK / PICK 탭 ============ -->
+    <div class="tab-bar" role="tablist">
+      <button class="tab-btn active" data-tab="packCard" role="tab" aria-selected="true">PACK</button>
+      <button class="tab-btn" data-tab="pickCard" role="tab" aria-selected="false">PICK</button>
+    </div>
+
+    <!-- ============ PACK ============ -->
+    <section class="card" id="packCard">
+      <div class="card-header">
+        <h2>PACK</h2>
+        <span class="card-hint muted">캡처는 메뉴얼 / 오토백 / ACE 각 그룹별로 진행됩니다.</span>
+      </div>
+
+      <div class="pack-groups" id="packGroups"><!-- JS render --></div>
+
+      <div class="recommend-box" id="packRecommend">
+        <div class="recommend-title">💡 PACK 충원 추천</div>
+        <div class="recommend-list" id="packRecommendList">
+          <span class="muted">값을 입력하면 자동으로 추천이 표시됩니다.</span>
+        </div>
+      </div>
+
+      <div class="ai-guide" id="aiGuide">
+        <div class="ai-guide-header">
+          <span class="ai-guide-icon">🤖</span>
+          <span class="ai-guide-title">AI 가이드 — 권장 운영안</span>
+          <span class="ai-guide-badge">PARTICIPATE</span>
+        </div>
+        <div class="ai-guide-body" id="aiGuideBody">
+          <div class="muted">값을 입력하면 AI가 권장 운영안을 제시합니다.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PICK ============ -->
+    <section class="card" id="pickCard">
+      <div class="card-header">
+        <h2>PICK</h2>
+        <button class="capture-btn" data-target="pickCard" data-include-header="true">📋 PICK 캡처 복사</button>
+      </div>
+
+      <div class="pick-table-wrap">
+        <table class="pick-table" id="pickTable">
+          <thead>
+            <tr>
+              <th>Floor</th>
+              <th>Exsd Backlog</th>
+              <th>Multi</th>
+              <th>Singulation</th>
+              <th>현 인원</th>
+              <th>평균 HTP</th>
+              <th>예상 집품량</th>
+              <th>리스크 유/무</th>
+              <th>예상 완료 시간</th>
+            </tr>
+          </thead>
+          <tbody id="pickTbody"><!-- JS render --></tbody>
+        </table>
+      </div>
+
+      <div class="recommend-box" id="pickRecommend">
+        <div class="recommend-title">💡 PICK 층간 충원 추천</div>
+        <div class="recommend-list" id="pickRecommendList">
+          <span class="muted">값을 입력하면 자동으로 추천이 표시됩니다.</span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/time.js"></script>
+  <script src="js/pack.js"></script>
+  <script src="js/pick.js"></script>
+  <script src="js/capture.js"></script>
+  <script src="js/main.js"></script>
+  <script type="module" src="js/firebase.js"></script>
+</body>
+</html>
