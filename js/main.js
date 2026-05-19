@@ -10,8 +10,8 @@ function tick() {
     String(now.getDate()).padStart(2, "0") + " " +
     ["일","월","화","수","목","금","토"][now.getDay()];
 
-  const { date: nextExsd, label } = window.getNextExsd(now);
-  const remainMs = nextExsd.getTime() - now.getTime();
+  const { date: activeExsd, label } = window.getActiveExsd(now);
+  const remainMs = activeExsd.getTime() - now.getTime();
   document.getElementById("nextExsd").textContent = label;
   document.getElementById("countdown").textContent = window.msToCountdown(remainMs);
 
@@ -28,15 +28,46 @@ function renderExsdChips() {
   const root = document.getElementById("exsdChips");
   root.innerHTML = "";
   const now = new Date();
-  const { label: nextLabel } = window.getNextExsd(now);
+  const { label: activeLabel } = window.getActiveExsd(now);
   const sorted = [...window.EXSD_LIST].sort();
   sorted.forEach(t => {
     const span = document.createElement("span");
     span.className = "exsd-chip";
-    if (t === nextLabel) span.classList.add("next");
+    if (t === activeLabel) span.classList.add("next");
     span.textContent = t;
     root.appendChild(span);
   });
+}
+
+function populateExsdSelector() {
+  const sel = document.getElementById("exsdSelect");
+  if (!sel) return;
+  // 옵션 채우기 (기본 "자동" 옵션은 HTML에 이미 있음)
+  const sorted = [...window.EXSD_LIST].sort();
+  sorted.forEach(t => {
+    const opt = document.createElement("option");
+    opt.value = t;
+    opt.textContent = `Exsd ${t}`;
+    sel.appendChild(opt);
+  });
+  sel.value = window.getSelectedExsdLabel();
+  syncExsdSelectorStyle();
+
+  sel.addEventListener("change", () => {
+    window.setSelectedExsdLabel(sel.value);
+    syncExsdSelectorStyle();
+    tick();                       // 즉시 topbar/계산 갱신
+    renderExsdChips();
+    if (window.showToast) {
+      const label = sel.value === "auto" ? "다음 Exsd (자동)" : `Exsd ${sel.value}`;
+      window.showToast(`⏰ 기준 마감 시간 변경 → ${label}`, "ok");
+    }
+  });
+}
+function syncExsdSelectorStyle() {
+  const sel = document.getElementById("exsdSelect");
+  if (!sel) return;
+  sel.classList.toggle("manual", sel.value !== "auto");
 }
 
 function bindInputs() {
@@ -149,6 +180,7 @@ document.addEventListener("DOMContentLoaded", () => {
   bindInputs();
   bindTabs();
   bindThemeToggle();
+  populateExsdSelector();
 
   tick();
   renderExsdChips();

@@ -18,6 +18,30 @@ window.getNextExsd = function (now = new Date()) {
   return { date: candidates[0], label: hhmm(candidates[0]) };
 };
 
+// ============== 사용자 선택 Exsd ==============
+// "auto" 또는 "HH:MM"
+window.getSelectedExsdLabel = function () {
+  try { return localStorage.getItem("checkrisk_selected_exsd") || "auto"; }
+  catch (e) { return "auto"; }
+};
+window.setSelectedExsdLabel = function (label) {
+  try {
+    if (!label || label === "auto") localStorage.removeItem("checkrisk_selected_exsd");
+    else localStorage.setItem("checkrisk_selected_exsd", label);
+  } catch (e) {}
+};
+
+// 활성 Exsd — 사용자가 직접 선택한 시간이 있으면 그 시간, 없으면 자동(다음 Exsd)
+// 선택한 시간이 오늘 이미 지났다면 parseExsdToDate가 익일로 롤오버함
+window.getActiveExsd = function (now = new Date()) {
+  const sel = window.getSelectedExsdLabel();
+  if (sel && sel !== "auto" && window.EXSD_LIST.includes(sel)) {
+    return { date: parseExsdToDate(sel, now), label: sel, manual: true };
+  }
+  const next = window.getNextExsd(now);
+  return { date: next.date, label: next.label, manual: false };
+};
+
 // 다음 Exsd까지 남은 시간 (ms)
 window.getRemainMs = function (now = new Date()) {
   const { date } = window.getNextExsd(now);

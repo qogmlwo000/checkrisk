@@ -1,15 +1,16 @@
 // ============== PACK 렌더 / 계산 ==============
 
 const PACK_COLS = [
-  { label: "PP",                            width: "11%" },
-  { label: "전 타임<br/>출고량",            width: "9%"  },
-  { label: "전 타임<br/>출고 인원",         width: "8%"  },
-  { label: "현 인원",                       width: "8%"  },
-  { label: "HTP",                           width: "7%"  },
-  { label: "Exsd 10분전<br/>예상 Capa",     width: "11%" },
-  { label: "Exsd Backlog",                  width: "10%" },
-  { label: "All Exsd<br/>Backlog",          width: "10%" },
-  { label: "리스크 유/무",                  width: "26%" }
+  { label: "PP",                            width: "10%" },
+  { label: "전 타임<br/>출고량",            width: "8%"  },
+  { label: "전 타임<br/>출고 인원",         width: "7%"  },
+  { label: "현 인원",                       width: "7%"  },
+  { label: "HTP",                           width: "6%"  },
+  { label: "Exsd 10분전<br/>예상 Capa",     width: "10%" },
+  { label: "Exsd Backlog",                  width: "9%"  },
+  { label: "All Exsd<br/>Backlog",          width: "9%"  },
+  { label: "리스크 유/무",                  width: "22%" },
+  { label: "예상 완료 시간",                width: "12%" }
 ];
 
 const PACK_FIELDS = ["prevQty", "prevHC", "currHC", "htp", "backlog", "allBacklog"];
@@ -148,6 +149,13 @@ window.renderPackTables = function () {
       riskTd.textContent = "—";
       tr.appendChild(riskTd);
 
+      // 예상 완료 시간 셀 (자동)
+      const etaTd = document.createElement("td");
+      etaTd.className = "eta-cell computed muted";
+      etaTd.dataset.cell = "eta";
+      etaTd.textContent = "—";
+      tr.appendChild(etaTd);
+
       tbody.appendChild(tr);
 
       // 설명 행 (전체 칼럼 span)
@@ -232,6 +240,7 @@ function computePackRow(row, remainH_to_pre_exsd, preExsd, now) {
 function updatePackRowUI(tr, row, calc) {
   const capaCell = tr.querySelector('[data-cell="capa"]');
   const riskCell = tr.querySelector('[data-cell="risk"]');
+  const etaCell  = tr.querySelector('[data-cell="eta"]');
   // 설명행은 다음 tr
   const descRow = tr.nextElementSibling;
   const descCell = descRow ? descRow.querySelector('[data-cell="desc"]') : null;
@@ -242,14 +251,22 @@ function updatePackRowUI(tr, row, calc) {
     capaCell.innerHTML = anyInput ? "0" : "—";
     capaCell.classList.toggle("muted", !anyInput);
   } else {
-    let html = `<span class="dual-line"><b>${calc.expectedCapa.toLocaleString()}</b>`;
-    if (calc.etaClock) {
-      const sign = calc.marginMin >= 0 ? `−${calc.marginMin}분` : `+${Math.abs(calc.marginMin)}분 지연`;
-      html += `<span class="eta-pack ${calc.etaStatus}">ETA ${window.hhmm(calc.etaClock)} (${sign})</span>`;
-    }
-    html += `</span>`;
-    capaCell.innerHTML = html;
+    capaCell.innerHTML = `<b>${calc.expectedCapa.toLocaleString()}</b>`;
     capaCell.classList.remove("muted");
+  }
+
+  // 예상 완료 시간 컬럼
+  etaCell.className = "eta-cell computed";
+  if (calc.etaClock) {
+    const cls = calc.etaStatus === "danger" ? "danger" : calc.etaStatus === "warn" ? "warn" : "safe";
+    etaCell.classList.add(cls);
+    const sign = calc.marginMin >= 0
+      ? `Exsd 10분전 −${calc.marginMin}분`
+      : `Exsd 10분전 +${Math.abs(calc.marginMin)}분 지연`;
+    etaCell.innerHTML = `<span class="dual-line"><b>${window.hhmm(calc.etaClock)}</b><span class="sub">${sign}</span></span>`;
+  } else {
+    etaCell.classList.add("muted");
+    etaCell.textContent = "—";
   }
 
   if (!anyInput) {
@@ -448,7 +465,7 @@ function formatHoursMin(hours) {
 // PACK 전체 재계산
 window.recomputePack = function () {
   const now = new Date();
-  const { date: nextExsd } = window.getNextExsd(now);
+  const { date: nextExsd } = window.getActiveExsd(now);
   const preExsd = new Date(nextExsd.getTime() - window.THRESHOLDS.PACK_PRE_EXSD_MIN * 60000);
   const remainH = Math.max(0, window.diffHour(preExsd, now));
 

@@ -178,7 +178,7 @@ function updatePickRowUI(tr, row, calc) {
 
 window.recomputePick = function () {
   const now = new Date();
-  const { date: nextExsd } = window.getNextExsd(now);
+  const { date: nextExsd } = window.getActiveExsd(now);
 
   const rows = [];
   document.querySelectorAll("#pickTbody tr[data-floor]").forEach(tr => {
