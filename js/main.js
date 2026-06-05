@@ -12,7 +12,7 @@ function tick() {
 
   const { date: activeExsd, label } = window.getActiveExsd(now);
   const remainMs = activeExsd.getTime() - now.getTime();
-  document.getElementById("nextExsd").textContent = label;
+  document.getElementById("nextExsd").textContent = "Exsd " + label;
   document.getElementById("countdown").textContent = window.msToCountdown(remainMs);
 
   const topbar = document.getElementById("topbar");

@@ -161,8 +161,10 @@ body { min-height: 100vh; padding-bottom: 28px; }
   background: var(--bg-elev-2);
   border: 1px solid var(--border);
   border-radius: 999px;
-  padding: 4px 26px 4px 14px;
+  padding: 4px 26px;
   cursor: pointer;
+  text-align: center;
+  text-align-last: center;
   -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
@@ -176,10 +178,17 @@ body { min-height: 100vh; padding-bottom: 28px; }
 .exsd-select:focus  { outline: none; border-color: var(--accent); color: var(--text); box-shadow: 0 0 0 2px var(--accent-soft); }
 .exsd-select.manual { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
 .exsd-time  { font-size: 22px; font-weight: 800; margin-top: 2px; color: var(--accent); }
+.exsd-cd-label {
+  font-size: 11px;
+  color: var(--text-dim);
+  letter-spacing: 1.5px;
+  font-weight: 700;
+  margin-top: 6px;
+}
 .exsd-countdown {
   font-size: 42px;
   font-weight: 900;
-  margin-top: 4px;
+  margin-top: 1px;
   letter-spacing: 2px;
   font-variant-numeric: tabular-nums;
 }
