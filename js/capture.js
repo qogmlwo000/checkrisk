@@ -46,6 +46,9 @@ window.captureToClipboard = async function (targetId, opts = {}) {
   clone.querySelectorAll(".capture-btn, .card-hint").forEach(el => el.remove());
   // input/select 값은 cloneNode가 복사하지 않음 → 직접 복사
   syncFormValues(target, clone);
+  // html2canvas가 input/select 텍스트를 세로 중앙에 못 맞춰 아래로 밀림 →
+  // 캡처 클론의 입력 필드를 정적 div로 치환해 렌더링 우회
+  freezeFieldsForCapture(target, clone);
 
   wrap.appendChild(clone);
   document.body.appendChild(wrap);
@@ -99,6 +102,52 @@ function syncFormValues(srcRoot, dstRoot) {
       d.value = s.value;
       if (s.value !== "") d.setAttribute("value", s.value);
     }
+  }
+}
+
+// html2canvas는 <input>/<select> 텍스트를 세로 중앙 정렬하지 못해 값이 아래로 밀려 보인다.
+// 캡처용 클론에서 각 입력 필드를 동일한 box 스타일의 정적 div로 치환해 input 렌더링을 우회한다.
+function freezeFieldsForCapture(srcRoot, dstRoot) {
+  const srcFields = srcRoot.querySelectorAll("input, select");
+  const dstFields = dstRoot.querySelectorAll("input, select");
+  const len = Math.min(srcFields.length, dstFields.length);
+  for (let i = 0; i < len; i++) {
+    const s = srcFields[i], d = dstFields[i];
+    const cs = getComputedStyle(s);
+
+    // 표시 텍스트 결정
+    let text, empty = false;
+    if (s.tagName === "SELECT") {
+      const opt = s.options[s.selectedIndex];
+      text = opt ? opt.textContent : s.value;
+    } else if (s.value !== "") {
+      text = s.value;
+    } else {
+      text = s.placeholder || "";
+      empty = true;
+    }
+
+    const div = document.createElement("div");
+    div.textContent = text;
+    Object.assign(div.style, {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      boxSizing: "border-box",
+      width: cs.width,
+      height: s.offsetHeight + "px",
+      padding: cs.padding,
+      font: cs.font,
+      letterSpacing: cs.letterSpacing,
+      color: empty ? "var(--text-muted)" : cs.color,
+      background: cs.backgroundColor,
+      border: cs.border,
+      borderRadius: cs.borderRadius,
+      textAlign: "center",
+      whiteSpace: "nowrap",
+      overflow: "hidden"
+    });
+    d.replaceWith(div);
   }
 }
 
