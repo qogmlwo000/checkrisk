@@ -70,27 +70,41 @@ function collectState() {
     });
     pick[tr.dataset.floor] = o;
   });
-  return { pack, pick };
+  const singuEl = document.getElementById("pickSinguTime");
+  const pickSingu = singuEl ? singuEl.value : "";
+  return { pack, pick, pickSingu };
+}
+// 원격값 적용 — 단, 내가 지금 편집(포커스) 중인 칸은 건너뜀(타이핑 보호)
+function setVal(inp, v) {
+  if (!inp) return;
+  if (inp === document.activeElement) return;     // 편집 중인 칸은 덮어쓰지 않음
+  if (inp.value !== v) inp.value = v;
 }
 function applyState(state) {
   if (!state) return;
-  const { pack = {}, pick = {} } = state;
+  const { pack = {}, pick = {}, pickSingu } = state;
   Object.entries(pack).forEach(([pp, vals]) => {
     const tr = document.querySelector(`#packGroups tr[data-pp="${cssEscape(pp)}"]`);
-    if (!tr) return;
+    if (!tr || !vals) return;
     Object.entries(vals).forEach(([f, v]) => {
-      const inp = tr.querySelector(`input[data-field="${f}"]`);
-      if (inp && inp.value !== v) inp.value = v;
+      setVal(tr.querySelector(`input[data-field="${f}"]`), v);
     });
   });
   Object.entries(pick).forEach(([fl, vals]) => {
     const tr = document.querySelector(`#pickTbody tr[data-floor="${cssEscape(fl)}"]`);
-    if (!tr) return;
+    if (!tr || !vals) return;
     Object.entries(vals).forEach(([f, v]) => {
-      const inp = tr.querySelector(`[data-field="${f}"]`);
-      if (inp && inp.value !== v) inp.value = v;
+      setVal(tr.querySelector(`[data-field="${f}"]`), v);
     });
   });
+  if (pickSingu !== undefined) {
+    const singuEl = document.getElementById("pickSinguTime");
+    if (singuEl && singuEl.value !== (pickSingu || "")) {
+      singuEl.value = pickSingu || "";
+      window.setPickSinguLabel && window.setPickSinguLabel(singuEl.value);
+      window.renderPickSinguClock && window.renderPickSinguClock();
+    }
+  }
   window.recomputePack && window.recomputePack();
   window.recomputePick && window.recomputePick();
 }
@@ -98,16 +112,58 @@ function cssEscape(s) {
   return (window.CSS && CSS.escape) ? CSS.escape(s) : s.replace(/"/g, '\\"');
 }
 
-// ============== 쓰기 (디바운스) ==============
+// ============== 쓰기 (변경된 칸만 부분 병합, 디바운스) ==============
 let writeTimer = null;
 let applyingRemote = false;
-async function pushLocal() {
-  if (!auth.currentUser) return;
+const pending = new Map();   // key -> { scope, id, field, value }
+
+// 변경된 element → 어느 칸인지 식별
+function elPath(el) {
+  if (!el) return null;
+  if (el.id === "pickSinguTime") return { scope: "pickSingu" };
+  const field = el.dataset && el.dataset.field;
+  if (!field) return null;
+  const tr = el.closest && el.closest("tr");
+  if (!tr) return null;
+  if (tr.dataset.pp)    return { scope: "pack", id: tr.dataset.pp, field };
+  if (tr.dataset.floor) return { scope: "pick", id: tr.dataset.floor, field };
+  return null;
+}
+function queueField(el) {
+  const p = elPath(el);
+  if (!p) return false;
+  if (p.scope === "pickSingu") {
+    const s = document.getElementById("pickSinguTime");
+    pending.set("singu", { ...p, value: s ? s.value : "" });
+  } else {
+    pending.set(`${p.scope}${p.id}${p.field}`, { ...p, value: el.value });
+  }
+  return true;
+}
+function queueAll() {
+  document.querySelectorAll("#packGroups input[data-field]").forEach(queueField);
+  document.querySelectorAll("#pickTbody [data-field]").forEach(queueField);
+  const s = document.getElementById("pickSinguTime");
+  if (s) queueField(s);
+}
+
+// pending → 부분 nested 객체 (점 포함 키 PP·층 이름도 그대로 보존됨)
+async function flushWrites() {
+  if (pending.size === 0) return;
+  if (!auth.currentUser) { scheduleWrite(); return; }  // 인증 대기 시 재시도
+  const state = {};
+  for (const it of pending.values()) {
+    if (it.scope === "pickSingu") { state.pickSingu = it.value; continue; }
+    (state[it.scope] = state[it.scope] || {});
+    (state[it.scope][it.id] = state[it.scope][it.id] || {});
+    state[it.scope][it.id][it.field] = it.value;
+  }
+  pending.clear();
   try {
     setDot("syncing", "동기화 중…");
     await domReady;
     await setDoc(SHARED_DOC, {
-      state: collectState(),
+      state,                                  // 변경 칸만 — merge로 나머지는 보존
       lastWriterId: SESSION_ID,
       updatedAt: serverTimestamp()
     }, { merge: true });
@@ -117,11 +173,32 @@ async function pushLocal() {
     setDot("error", "쓰기 실패: " + (e.code || e.message));
   }
 }
-window.onLocalChange = function () {
-  if (applyingRemote) return;          // 원격 적용 중에 발생한 input 이벤트 무시
-  if (!auth.currentUser) return;
+function scheduleWrite() {
   clearTimeout(writeTimer);
-  writeTimer = setTimeout(pushLocal, 500);
+  writeTimer = setTimeout(flushWrites, 500);
+}
+
+// 최초 문서 생성용 — 전체 상태 1회 시드
+async function seedFull() {
+  if (!auth.currentUser) return;
+  try {
+    await domReady;
+    await setDoc(SHARED_DOC, {
+      state: collectState(),
+      lastWriterId: SESSION_ID,
+      updatedAt: serverTimestamp()
+    }, { merge: true });
+  } catch (e) {
+    console.error("[firebase] seed failed:", e);
+  }
+}
+
+// el: 변경된 입력 요소. 생략(초기화 등 일괄)이면 현재 DOM 전체를 큐잉
+window.onLocalChange = function (el) {
+  if (applyingRemote) return;          // 원격 적용 중 발생한 input 이벤트 무시
+  if (el === undefined) queueAll();
+  else if (!queueField(el)) queueAll();
+  scheduleWrite();
 };
 
 // ============== 인증 후 구독 ==============
@@ -139,7 +216,7 @@ onAuthStateChanged(auth, (user) => {
   onSnapshot(SHARED_DOC, async (snap) => {
     await domReady;
     if (!snap.exists()) {
-      pushLocal();
+      seedFull();
       return;
     }
     const data = snap.data();

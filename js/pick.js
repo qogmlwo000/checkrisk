@@ -113,31 +113,61 @@ function readPickRow(tr) {
   return r;
 }
 
+function pickStatus(rate, backlog, marginMin, hasInput) {
+  if (rate <= 0 || backlog <= 0) {
+    return (backlog === 0 && hasInput) ? "safe" : "idle";
+  }
+  if (marginMin >= window.THRESHOLDS.PICK_SAFE_MIN) return "safe";
+  if (marginMin >= window.THRESHOLDS.PICK_WARN_MIN) return "warn";
+  return "danger";
+}
+
+// 특정 시작 시각(start) 기준 ETA/여유/예상 집품량 1세트 계산
+function pickEtaFrom(start, rate, backlog, nextExsd, hasInput) {
+  let etaMinutes = Infinity, etaClock = null, marginMin = -Infinity;
+  if (rate > 0 && backlog > 0) {
+    etaMinutes = (backlog / rate) * 60;
+    etaClock = window.addMinutes(start, etaMinutes);
+    marginMin = window.diffMin(nextExsd, etaClock);
+  } else if (rate > 0 && backlog === 0) {
+    etaMinutes = 0;
+    etaClock = start;
+    marginMin = window.diffMin(nextExsd, start);
+  }
+  const remainH = Math.max(0, window.diffHour(nextExsd, start));
+  const expectedPick = Math.round(rate * remainH);
+  const status = pickStatus(rate, backlog, marginMin, hasInput);
+  return { start, etaMinutes, etaClock, marginMin, remainH, expectedPick, status };
+}
+
 function computePickRow(row, now, nextExsd) {
   const exsdBacklog = row.multi + row.singu;
-  const remainH = Math.max(0, window.diffHour(nextExsd, now));
   const rate = row.currHC * row.htp; // unit/h
-  const expectedPick = Math.round(rate * remainH);
+  const hasInput = row.multi_has || row.singu_has;
 
-  let etaMinutes = Infinity, etaClock = null, marginMin = -Infinity;
-  if (rate > 0 && exsdBacklog > 0) {
-    etaMinutes = (exsdBacklog / rate) * 60;
-    etaClock = window.addMinutes(now, etaMinutes);
-    marginMin = window.diffMin(nextExsd, etaClock);
-  } else if (rate > 0 && exsdBacklog === 0) {
-    etaMinutes = 0;
-    etaClock = now;
-    marginMin = window.diffMin(nextExsd, now);
+  // ① 현재 시각 기준 — 지금부터 바로 집품 시작 가정 (기존 동작)
+  const cur = pickEtaFrom(now, rate, exsdBacklog, nextExsd, hasInput);
+
+  // ② 단일(싱귤레이션) 설정 시각 기준 — Multi+Singulation 전체를 단일 시각 이후 처리
+  let singu = null;
+  const singuDate = window.getPickSinguDate ? window.getPickSinguDate(now) : null;
+  if (singuDate) {
+    const passed = singuDate.getTime() <= now.getTime();
+    // 단일 시각이 지났으면 이미 가동 중 → 현재 시각부터 산정
+    const start = passed ? now : singuDate;
+    singu = pickEtaFrom(start, rate, exsdBacklog, nextExsd, hasInput);
+    singu.label = window.hhmm(singuDate);
+    singu.passed = passed;
   }
 
-  let status = "safe"; // safe / warn / danger / idle
-  if (rate <= 0 || exsdBacklog <= 0) {
-    status = (exsdBacklog === 0 && (row.multi_has || row.singu_has)) ? "safe" : "idle";
-  } else if (marginMin >= window.THRESHOLDS.PICK_SAFE_MIN) status = "safe";
-  else if (marginMin >= window.THRESHOLDS.PICK_WARN_MIN) status = "warn";
-  else status = "danger";
-
-  return { exsdBacklog, remainH, rate, expectedPick, etaMinutes, etaClock, marginMin, status };
+  // 기존 필드 호환 유지(현재 기준) + cur/singu 세트 추가
+  return {
+    exsdBacklog, rate,
+    remainH: cur.remainH, expectedPick: cur.expectedPick,
+    etaMinutes: cur.etaMinutes, etaClock: cur.etaClock,
+    marginMin: cur.marginMin, status: cur.status,
+    cur, singu
+  };
 }
 
 function updatePickRowUI(tr, row, calc) {
@@ -154,26 +184,57 @@ function updatePickRowUI(tr, row, calc) {
     eb.classList.add("muted");
   }
 
+  // ---- 예상 집품량 (현재 기준 + 단일 기준) ----
   if (row.currHC > 0 && row.htp > 0) {
-    ep.innerHTML =
+    let html =
       `<span class="dual-line"><b>${calc.rate.toLocaleString()} Unit/h</b>` +
-      `<span class="sub">Exsd까지 ${formatHoursMinPick(calc.remainH)} ⇒ ${calc.expectedPick.toLocaleString()} Unit</span></span>`;
+      `<span class="sub">Exsd까지 ${formatHoursMinPick(calc.cur.remainH)} ⇒ ${calc.cur.expectedPick.toLocaleString()} Unit</span>`;
+    if (calc.singu && !calc.singu.passed) {
+      html +=
+        `<span class="sub singu">단일 ${calc.singu.label} 기준 ${formatHoursMinPick(calc.singu.remainH)} ⇒ ${calc.singu.expectedPick.toLocaleString()} Unit</span>`;
+    }
+    html += `</span>`;
+    ep.innerHTML = html;
     ep.classList.remove("muted");
   } else {
     ep.textContent = "—";
     ep.classList.add("muted");
   }
 
-  eta.className = "eta-cell computed";
-  if (calc.etaClock) {
-    const cls = calc.status === "danger" ? "danger" : calc.status === "warn" ? "warn" : "safe";
-    eta.classList.add(cls);
-    const sign = calc.marginMin >= 0 ? `Exsd −${calc.marginMin}분` : `Exsd +${Math.abs(calc.marginMin)}분 지연`;
-    eta.textContent = `${window.hhmm(calc.etaClock)} (${sign})`;
+  // ---- 예상 완료 시간 ----
+  if (calc.singu) {
+    // 현재 기준 + 단일 기준 2줄
+    eta.className = "eta-cell computed eta-multi";
+    let lines = etaLineHTML("현재", calc.cur);
+    if (calc.singu.passed) {
+      lines += `<span class="eta-line muted small">단일 ${calc.singu.label} 지남 · 현재 기준 적용</span>`;
+    } else {
+      lines += etaLineHTML(`단일 ${calc.singu.label}`, calc.singu);
+    }
+    eta.innerHTML = lines;
   } else {
-    eta.classList.add("muted");
-    eta.textContent = "—";
+    // 단일 미설정 — 기존 단일 줄 동작 유지
+    eta.className = "eta-cell computed";
+    if (calc.cur.etaClock) {
+      const cls = calc.cur.status === "danger" ? "danger" : calc.cur.status === "warn" ? "warn" : "safe";
+      eta.classList.add(cls);
+      const sign = calc.cur.marginMin >= 0 ? `Exsd −${calc.cur.marginMin}분` : `Exsd +${Math.abs(calc.cur.marginMin)}분 지연`;
+      eta.textContent = `${window.hhmm(calc.cur.etaClock)} (${sign})`;
+    } else {
+      eta.classList.add("muted");
+      eta.textContent = "—";
+    }
   }
+}
+
+// 완료시간 한 줄 HTML — 라벨(현재/단일 HH:MM) + 예상 완료 시각 + Exsd 여유
+function etaLineHTML(label, c) {
+  if (!c.etaClock) {
+    return `<span class="eta-line muted">${label} —</span>`;
+  }
+  const cls = c.status === "danger" ? "danger" : c.status === "warn" ? "warn" : "safe";
+  const sign = c.marginMin >= 0 ? `Exsd −${c.marginMin}분` : `Exsd +${Math.abs(c.marginMin)}분 지연`;
+  return `<span class="eta-line ${cls}"><span class="eta-tag">${label}</span> <b>${window.hhmm(c.etaClock)}</b> <span class="eta-margin">(${sign})</span></span>`;
 }
 
 window.recomputePick = function () {

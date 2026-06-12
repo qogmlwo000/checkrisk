@@ -42,6 +42,35 @@ window.getActiveExsd = function (now = new Date()) {
   return { date: next.date, label: next.label, manual: false };
 };
 
+// ============== PICK 단일(싱귤레이션) 설정 시각 ==============
+// "HH:MM" → 오늘 기준 Date (롤오버 없음). 형식 오류/미설정이면 null.
+function parseTodayTime(hhmm, baseDate) {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(hhmm || "");
+  if (!m) return null;
+  const d = new Date(baseDate);
+  d.setHours(Number(m[1]), Number(m[2]), 0, 0);
+  return d;
+}
+window.parseTodayTime = parseTodayTime;
+
+// 단일 설정 시각 라벨 — 화면 입력(#pickSinguTime)이 진실원본, 없으면 localStorage
+window.getPickSinguLabel = function () {
+  const el = (typeof document !== "undefined") && document.getElementById("pickSinguTime");
+  if (el) return el.value || "";
+  try { return localStorage.getItem("checkrisk_pick_singu") || ""; }
+  catch (e) { return ""; }
+};
+window.setPickSinguLabel = function (label) {
+  try {
+    if (!label) localStorage.removeItem("checkrisk_pick_singu");
+    else localStorage.setItem("checkrisk_pick_singu", label);
+  } catch (e) {}
+};
+// 단일 설정 시각 Date (오늘 기준). 미설정이면 null.
+window.getPickSinguDate = function (now = new Date()) {
+  return parseTodayTime(window.getPickSinguLabel(), now);
+};
+
 // 다음 Exsd까지 남은 시간 (ms)
 window.getRemainMs = function (now = new Date()) {
   const { date } = window.getNextExsd(now);

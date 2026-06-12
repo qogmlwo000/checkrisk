@@ -531,6 +531,74 @@ input[type=number] { -moz-appearance: textfield; }
 .eta-cell.warn   { color: var(--warn);  font-weight: 800; }
 .eta-cell.danger { color: var(--danger);font-weight: 900; }
 
+/* 단일 설정 시각 — 디지털 시계 컨트롤 (PICK 헤더) */
+.pick-header-controls { display: inline-flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+.singu-clock {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: var(--bg-elev-2);
+  border: 1px solid var(--border);
+  border-radius: 8px; padding: 3px 7px 3px 9px;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+.singu-clock.set { border-color: var(--accent); background: var(--accent-soft); }
+.singu-clock:focus-within { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+.singu-ico { font-size: 12.5px; line-height: 1; filter: saturate(0.9); cursor: pointer; }
+.singu-label {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.3px;
+  color: var(--text-dim); white-space: nowrap; cursor: pointer;
+}
+.singu-clock.set .singu-label { color: var(--accent-2); }
+
+.singu-digits {
+  display: inline-flex; align-items: center; gap: 1px;
+  padding: 2px 4px; border-radius: 5px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+}
+.singu-clock.set .singu-digits { border-color: transparent; background: var(--bg-input); }
+.singu-num {
+  width: 1.55em; padding: 0; margin: 0;
+  font-family: inherit; font-size: 16px; font-weight: 800;
+  font-variant-numeric: tabular-nums; letter-spacing: 0.5px;
+  text-align: center; color: var(--text);
+  background: transparent; border: none; border-radius: 4px;
+  caret-color: var(--accent); cursor: ns-resize;
+}
+.singu-num::placeholder { color: var(--text-muted); font-weight: 700; }
+.singu-num:focus { outline: none; background: var(--bg-input-fc); }
+.singu-clock.set .singu-num { color: var(--accent); }
+.singu-colon { font-size: 15px; font-weight: 800; color: var(--text-muted); padding: 0 1px; }
+.singu-clock.set .singu-colon { color: var(--accent); }
+
+.singu-clear {
+  font-family: inherit; font-size: 11px; line-height: 1;
+  border: none; background: transparent; color: var(--text-muted);
+  cursor: pointer; padding: 3px 4px; border-radius: 4px;
+  transition: color 0.12s, background 0.12s;
+}
+.singu-clear:hover { color: var(--danger); background: var(--danger-soft); }
+
+/* 예상 완료 시간 — 현재 / 단일 2줄 */
+.eta-cell.eta-multi { font-weight: 700; }
+.eta-cell .eta-line {
+  display: block; line-height: 1.4; font-size: 11.5px;
+  white-space: normal; word-break: keep-all;
+}
+.eta-cell .eta-line + .eta-line { margin-top: 3px; }
+.eta-cell .eta-line.safe   { color: var(--ok); }
+.eta-cell .eta-line.warn   { color: var(--warn); }
+.eta-cell .eta-line.danger { color: var(--danger); font-weight: 800; }
+.eta-cell .eta-line.muted  { color: var(--text-muted); font-weight: 500; }
+.eta-cell .eta-line.small  { font-size: 10.5px; }
+.eta-cell .eta-tag {
+  display: inline-block; min-width: 30px;
+  font-size: 10px; font-weight: 800; color: var(--text-muted);
+}
+.eta-cell .eta-margin { font-size: 10.5px; font-weight: 600; }
+
+/* 예상 집품량 — 단일 기준 보조 줄 */
+.dual-line .sub.singu { color: var(--accent); font-weight: 600; }
+
 /* ============== Recommend / Guide ============== */
 .recommend-box {
   margin-top: 12px;

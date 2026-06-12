@@ -83,10 +83,26 @@
     <section class="card" id="pickCard">
       <div class="card-header">
         <h2>PICK</h2>
-        <span style="display:inline-flex;gap:6px;align-items:center;">
+        <div class="pick-header-controls">
+          <div class="singu-clock" id="pickSinguClock" role="group"
+               aria-label="단일(싱귤레이션) 설정 시각"
+               title="메인관리자 단일 설정 시각 — 이 시각 기준으로 예상 집품량/완료시간도 함께 산정됩니다. (타이핑 · ↑↓ · 마우스 휠로 조절)">
+            <span class="singu-ico" aria-hidden="true">🕒</span>
+            <span class="singu-label">단일 설정</span>
+            <span class="singu-digits">
+              <input class="singu-num" id="pickSinguH" inputmode="numeric" maxlength="2"
+                     placeholder="--" aria-label="시 (00–23)" title="시 — ↑↓ / 휠 조절" />
+              <span class="singu-colon">:</span>
+              <input class="singu-num" id="pickSinguM" inputmode="numeric" maxlength="2"
+                     placeholder="--" aria-label="분 (00–59)" title="분 — ↑↓ / 휠 조절" />
+            </span>
+            <button type="button" class="singu-clear" id="pickSinguClear"
+                    title="단일 설정 시각 해제" aria-label="단일 설정 시각 해제">✕</button>
+            <input type="time" id="pickSinguTime" hidden />
+          </div>
           <button class="reset-btn" data-reset-target="pickCard">🗑 PICK 초기화</button>
           <button class="capture-btn" data-target="pickCard" data-include-header="true">📋 PICK 캡처 복사</button>
-        </span>
+        </div>
       </div>
 
       <div class="pick-table-wrap">

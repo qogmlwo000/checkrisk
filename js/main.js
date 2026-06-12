@@ -70,19 +70,111 @@ function syncExsdSelectorStyle() {
   sel.classList.toggle("manual", sel.value !== "auto");
 }
 
+function bindPickSingu() {
+  const wrap   = document.getElementById("pickSinguClock");
+  if (!wrap) return;
+  const hidden = document.getElementById("pickSinguTime"); // 진실원본 "HH:MM"
+  const hEl    = document.getElementById("pickSinguH");
+  const mEl    = document.getElementById("pickSinguM");
+  const clear  = document.getElementById("pickSinguClear");
+
+  const pad = n => String(n).padStart(2, "0");
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+
+  // hidden("HH:MM") → 화면 세그먼트 동기화 (부수효과 없음)
+  function render() {
+    const m = /^(\d{1,2}):(\d{2})$/.exec(hidden.value || "");
+    if (m) {
+      if (document.activeElement !== hEl) hEl.value = pad(+m[1]);
+      if (document.activeElement !== mEl) mEl.value = pad(+m[2]);
+      wrap.classList.add("set");
+    } else {
+      if (document.activeElement !== hEl) hEl.value = "";
+      if (document.activeElement !== mEl) mEl.value = "";
+      wrap.classList.remove("set");
+    }
+  }
+  window.renderPickSinguClock = render;
+
+  // 세그먼트 → hidden 반영 + 영속/재계산/원격동기화
+  function commit(toast) {
+    const h = parseInt(hEl.value, 10);
+    const m = parseInt(mEl.value, 10);
+    const val = (Number.isFinite(h) && Number.isFinite(m))
+      ? pad(clamp(h, 0, 23)) + ":" + pad(clamp(m, 0, 59))
+      : "";
+    hidden.value = val;
+    window.setPickSinguLabel(val);
+    wrap.classList.toggle("set", !!val);
+    window.recomputePick && window.recomputePick();
+    window.onLocalChange && window.onLocalChange(hidden);
+    if (toast && window.showToast) {
+      window.showToast(val ? `🕒 단일 설정 시각 → ${val}` : "🕒 단일 설정 시각 해제", "ok");
+    }
+  }
+
+  function onSegInput(el, isHour) {
+    el.value = el.value.replace(/\D/g, "").slice(0, 2);
+    if (isHour && el.value.length === 2) { mEl.focus(); mEl.select(); }
+    commit(false); // 둘 중 하나라도 비면 해제, 둘 다 차면 반영
+  }
+
+  // ↑↓ / 휠 증감 (랩어라운드, 비어있으면 0부터)
+  function bump(el, isHour, dir) {
+    const max = isHour ? 23 : 59;
+    let cur = parseInt(el.value, 10);
+    if (!Number.isFinite(cur)) cur = dir > 0 ? -1 : max + 1;
+    let next = cur + dir;
+    if (next > max) next = 0;
+    if (next < 0) next = max;
+    el.value = pad(next);
+    const other = isHour ? mEl : hEl;       // 다른 칸이 비면 00으로 채워 유효화
+    if (other.value === "") other.value = "00";
+    commit(false);
+  }
+
+  [[hEl, true], [mEl, false]].forEach(([el, isHour]) => {
+    el.addEventListener("input",  () => onSegInput(el, isHour));
+    el.addEventListener("change", () => commit(true));
+    el.addEventListener("focus",  () => el.select());
+    el.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowUp")   { e.preventDefault(); bump(el, isHour, +1); }
+      if (e.key === "ArrowDown") { e.preventDefault(); bump(el, isHour, -1); }
+    });
+    el.addEventListener("wheel", (e) => {
+      e.preventDefault(); bump(el, isHour, e.deltaY < 0 ? +1 : -1);
+    }, { passive: false });
+  });
+
+  // 라벨/아이콘 영역 클릭 → 시 입력 포커스
+  wrap.addEventListener("click", (e) => {
+    if (e.target.closest(".singu-ico, .singu-label")) hEl.focus();
+  });
+
+  if (clear) clear.addEventListener("click", () => {
+    hEl.value = ""; mEl.value = ""; commit(true);
+  });
+
+  // 초기값 복원 (localStorage) — firebase 구독이 오면 이후 덮어씀
+  let stored = "";
+  try { stored = localStorage.getItem("checkrisk_pick_singu") || ""; } catch (e) {}
+  hidden.value = stored;
+  render();
+}
+
 function bindInputs() {
-  document.getElementById("packGroups").addEventListener("input", () => {
+  document.getElementById("packGroups").addEventListener("input", (e) => {
     window.recomputePack();
-    window.onLocalChange && window.onLocalChange();
+    window.onLocalChange && window.onLocalChange(e.target);
   });
   const pickTbody = document.getElementById("pickTbody");
-  pickTbody.addEventListener("input", () => {
+  pickTbody.addEventListener("input", (e) => {
     window.recomputePick();
-    window.onLocalChange && window.onLocalChange();
+    window.onLocalChange && window.onLocalChange(e.target);
   });
-  pickTbody.addEventListener("change", () => {
+  pickTbody.addEventListener("change", (e) => {
     window.recomputePick();
-    window.onLocalChange && window.onLocalChange();
+    window.onLocalChange && window.onLocalChange(e.target);
   });
 
   // 캡처 버튼 — body 전역 위임 (동적 생성 그룹 캡처 버튼 포함)
@@ -123,6 +215,14 @@ function handleReset(btn) {
     if (el.tagName === "SELECT") el.value = "-";
     else el.value = "";
   });
+
+  // PICK 초기화 시 단일 설정 시각도 함께 해제 (localStorage + 시계 표시 갱신)
+  if (btn.dataset.resetTarget === "pickCard") {
+    const si = document.getElementById("pickSinguTime");
+    if (si) si.value = "";
+    window.setPickSinguLabel && window.setPickSinguLabel("");
+    window.renderPickSinguClock && window.renderPickSinguClock();
+  }
 
   // 재계산 + 원격 동기화
   window.recomputePack && window.recomputePack();
@@ -178,6 +278,7 @@ document.addEventListener("DOMContentLoaded", () => {
   window.renderPackTables();
   window.renderPickTable();
   bindInputs();
+  bindPickSingu();
   bindTabs();
   bindThemeToggle();
   populateExsdSelector();
