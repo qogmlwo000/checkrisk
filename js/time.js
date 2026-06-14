@@ -66,9 +66,17 @@ window.setPickSinguLabel = function (label) {
     else localStorage.setItem("checkrisk_pick_singu", label);
   } catch (e) {}
 };
-// 단일 설정 시각 Date (오늘 기준). 미설정이면 null.
+// 단일 설정 시각 Date — 기준 시각(now)에 가장 가까운 해당 HH:MM 회차.
+// 야간조처럼 자정을 넘기는 경우를 위해, 오늘분이 12시간 넘게 과거면 익일,
+// 12시간 넘게 미래면 전일로 보정한다. 미설정/형식오류면 null.
 window.getPickSinguDate = function (now = new Date()) {
-  return parseTodayTime(window.getPickSinguLabel(), now);
+  const d = parseTodayTime(window.getPickSinguLabel(), now);
+  if (!d) return null;
+  const HALF_DAY = 12 * 60 * 60 * 1000;
+  const diff = d.getTime() - now.getTime();
+  if (diff < -HALF_DAY) d.setDate(d.getDate() + 1);        // 오늘분이 한참 지남 → 익일 회차 (예: 22:30에 01:00)
+  else if (diff > HALF_DAY) d.setDate(d.getDate() - 1);    // 오늘분이 한참 뒤 → 전일 회차 (예: 02:00에 23:00)
+  return d;
 };
 
 // 다음 Exsd까지 남은 시간 (ms)
