@@ -36,6 +36,10 @@ window.captureToClipboard = async function (targetId, opts = {}) {
       // 캡처용 헤더는 동기 토글/상태점 등 인터랙티브 요소 제거
       tb.querySelectorAll(".theme-toggle, .sync-dot").forEach(el => el.remove());
       tb.style.position = "static";
+      // 헤더의 Exsd <select> 등도 html2canvas가 텍스트를 깨뜨려 오른쪽으로 쏠리므로
+      // 본문과 동일하게 값 복사 + 정적 div 치환(freeze) 처리한다.
+      syncFormValues(topbar, tb);
+      freezeFieldsForCapture(topbar, tb);
       wrap.appendChild(tb);
     }
   }
@@ -51,6 +55,10 @@ window.captureToClipboard = async function (targetId, opts = {}) {
   freezeFieldsForCapture(target, clone);
 
   wrap.appendChild(clone);
+  // html2canvas의 measureText는 font-variant-numeric: tabular-nums 를 반영하지 못해
+  // 숫자·기호·한글 사이에 빈 공백이 끼어 글자가 밀려 보인다(예: "12:55"→"12 :55", "−119분"→"−119 분").
+  // 캡처 클론 전체에서 해당 설정을 꺼 글자 간격을 정상화한다. (폰트 자체는 그대로 유지)
+  normalizeNumericForCapture(wrap);
   document.body.appendChild(wrap);
 
   try {
@@ -149,6 +157,17 @@ function freezeFieldsForCapture(srcRoot, dstRoot) {
     });
     d.replaceWith(div);
   }
+}
+
+// html2canvas는 tabular-nums(고정폭 숫자) 메트릭을 measureText로 못 잡아 글자가 벌어진다.
+// 캡처 클론의 모든 요소에서 font-variant-numeric / font-feature-settings 를 normal 로 강제한다.
+function normalizeNumericForCapture(root) {
+  const apply = el => {
+    el.style.fontVariantNumeric = "normal";
+    el.style.fontFeatureSettings = "normal";
+  };
+  apply(root);
+  root.querySelectorAll("*").forEach(apply);
 }
 
 function showCaptureModal(canvas) {

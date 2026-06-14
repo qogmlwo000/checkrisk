@@ -155,8 +155,12 @@ function computePickRow(row, now, nextExsd) {
     const passed = singuDate.getTime() <= now.getTime();
     // 단일 시각이 지났으면 이미 가동 중 → 현재 시각부터 산정
     const start = passed ? now : singuDate;
-    singu = pickEtaFrom(start, rate, exsdBacklog, nextExsd, hasInput);
+    // 단일 기준 마감 = 단일 시작 시각 이후 첫 Exsd.
+    // (지났으면 현재 기준과 동일하므로 화면에 표시되는 nextExsd를 그대로 사용)
+    const singuExsd = passed ? nextExsd : window.getNextExsd(start).date;
+    singu = pickEtaFrom(start, rate, exsdBacklog, singuExsd, hasInput);
     singu.label = window.hhmm(singuDate);
+    singu.exsdLabel = window.hhmm(singuExsd);
     singu.passed = passed;
   }
 
@@ -191,7 +195,7 @@ function updatePickRowUI(tr, row, calc) {
       `<span class="sub">Exsd까지 ${formatHoursMinPick(calc.cur.remainH)} ⇒ ${calc.cur.expectedPick.toLocaleString()} Unit</span>`;
     if (calc.singu && !calc.singu.passed) {
       html +=
-        `<span class="sub singu">단일 ${calc.singu.label} 기준 ${formatHoursMinPick(calc.singu.remainH)} ⇒ ${calc.singu.expectedPick.toLocaleString()} Unit</span>`;
+        `<span class="sub singu">단일 ${calc.singu.label} 기준 (${calc.singu.exsdLabel} 마감) ${formatHoursMinPick(calc.singu.remainH)} ⇒ ${calc.singu.expectedPick.toLocaleString()} Unit</span>`;
     }
     html += `</span>`;
     ep.innerHTML = html;
@@ -209,7 +213,7 @@ function updatePickRowUI(tr, row, calc) {
     if (calc.singu.passed) {
       lines += `<span class="eta-line muted small">단일 ${calc.singu.label} 지남 · 현재 기준 적용</span>`;
     } else {
-      lines += etaLineHTML(`단일 ${calc.singu.label}`, calc.singu);
+      lines += etaLineHTML(`단일 ${calc.singu.label}`, calc.singu, calc.singu.exsdLabel);
     }
     eta.innerHTML = lines;
   } else {
@@ -227,13 +231,15 @@ function updatePickRowUI(tr, row, calc) {
   }
 }
 
-// 완료시간 한 줄 HTML — 라벨(현재/단일 HH:MM) + 예상 완료 시각 + Exsd 여유
-function etaLineHTML(label, c) {
+// 완료시간 한 줄 HTML — 라벨(현재/단일 HH:MM) + 예상 완료 시각 + 마감 여유
+// exsdLabel 지정 시 여유 표기의 기준 마감을 "Exsd" 대신 해당 시각(예: 03:35)으로 보여준다.
+function etaLineHTML(label, c, exsdLabel) {
   if (!c.etaClock) {
     return `<span class="eta-line muted">${label} —</span>`;
   }
   const cls = c.status === "danger" ? "danger" : c.status === "warn" ? "warn" : "safe";
-  const sign = c.marginMin >= 0 ? `Exsd −${c.marginMin}분` : `Exsd +${Math.abs(c.marginMin)}분 지연`;
+  const base = exsdLabel || "Exsd";
+  const sign = c.marginMin >= 0 ? `${base} −${c.marginMin}분` : `${base} +${Math.abs(c.marginMin)}분 지연`;
   return `<span class="eta-line ${cls}"><span class="eta-tag">${label}</span> <b>${window.hhmm(c.etaClock)}</b> <span class="eta-margin">(${sign})</span></span>`;
 }
 
