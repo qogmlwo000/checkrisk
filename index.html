@@ -39,12 +39,83 @@
       <div class="exsd-chips" id="exsdChips"></div>
       <div class="topbar-actions">
         <span class="sync-dot" id="syncDot" title="Firebase 연결 대기">●</span>
+        <button class="icon-btn" id="alertBtn" title="긴급 알림 설정" aria-haspopup="true" aria-expanded="false">🔔</button>
         <button class="theme-toggle" id="themeToggle" title="라이트/다크 전환">🌙</button>
+
+        <div class="alert-pop" id="alertPop" hidden role="menu" aria-label="긴급 알림 설정">
+          <div class="alert-pop-title">🔔 긴급 알림 설정</div>
+
+          <label class="alert-row" for="alOptFlash">
+            <span>
+              <span class="ar-label">🟥 화면 플래시</span>
+              <span class="ar-desc">임박 시 화면 가장자리 점멸</span>
+            </span>
+            <span class="switch"><input type="checkbox" id="alOptFlash" /><span class="track"></span></span>
+          </label>
+
+          <label class="alert-row" for="alOptSound">
+            <span>
+              <span class="ar-label">🔊 알림음</span>
+              <span class="ar-desc">임계 시간 진입 시 비프음</span>
+            </span>
+            <span class="switch"><input type="checkbox" id="alOptSound" /><span class="track"></span></span>
+          </label>
+
+          <label class="alert-row" for="alOptNotify">
+            <span>
+              <span class="ar-label">💬 브라우저 알림</span>
+              <span class="ar-desc">탭 밖에서도 데스크톱 알림</span>
+            </span>
+            <span class="switch"><input type="checkbox" id="alOptNotify" /><span class="track"></span></span>
+          </label>
+        </div>
       </div>
     </div>
   </header>
 
   <main>
+    <!-- ============ 종합 현황 요약 바 ============ -->
+    <section class="summary-bar" id="summaryBar" aria-live="polite">
+      <div class="sum-status s-idle" id="sumStatus">
+        <span class="sum-status-label">종합 현황</span>
+        <span class="sum-status-value"><span class="dot"></span><span id="sumStatusText">대기 중</span></span>
+        <span class="sum-status-sub" id="sumStatusSub">값을 입력하면 자동 집계됩니다</span>
+      </div>
+
+      <div class="sum-stats" id="sumStats">
+        <div class="sum-tile" id="tilePack">
+          <span class="t-label">PACK 리스크</span>
+          <span class="t-value" id="tilePackVal">—</span>
+          <span class="t-sub" id="tilePackSub">PP</span>
+        </div>
+        <div class="sum-tile" id="tilePick">
+          <span class="t-label">PICK 리스크</span>
+          <span class="t-value" id="tilePickVal">—</span>
+          <span class="t-sub" id="tilePickSub">층</span>
+        </div>
+        <div class="sum-tile" id="tileShortage">
+          <span class="t-label">총 부족(PACK)</span>
+          <span class="t-value" id="tileShortageVal">—<small>Unit</small></span>
+          <span class="t-sub" id="tileShortageSub">Exsd 10분전 기준</span>
+        </div>
+        <div class="sum-tile" id="tileHC">
+          <span class="t-label">추가 필요 HC</span>
+          <span class="t-value" id="tileHCVal">—<small>HC</small></span>
+          <span class="t-sub" id="tileHCSub">충원 추정</span>
+        </div>
+        <div class="sum-tile urgent-item" id="tileUrgent">
+          <span class="t-label">최우선 항목</span>
+          <span class="t-value" id="tileUrgentVal">—</span>
+          <span class="t-sub" id="tileUrgentSub">가장 급한 마감</span>
+        </div>
+      </div>
+
+      <div class="sum-toolbar">
+        <button class="tool-btn" id="exportBtn" title="현재 입력값을 CSV로 내보내기">📥 내보내기</button>
+        <button class="tool-btn" id="snapshotBtn" title="현재 상태 스냅샷 저장/복원">📸 스냅샷</button>
+      </div>
+    </section>
+
     <!-- ============ PACK / PICK 탭 ============ -->
     <div class="tab-bar" role="tablist">
       <button class="tab-btn active" data-tab="packCard" role="tab" aria-selected="true">PACK</button>
@@ -135,12 +206,33 @@
 
   <div id="toast" class="toast"></div>
 
+  <!-- 긴급 알림: 화면 가장자리 플래시 오버레이 -->
+  <div id="alertFlash" aria-hidden="true"></div>
+
+  <!-- 스냅샷 저장/복원 모달 -->
+  <div class="snap-modal" id="snapModal" hidden role="dialog" aria-modal="true" aria-label="스냅샷">
+    <div class="snap-card">
+      <div class="snap-head">
+        <h3>📸 스냅샷</h3>
+        <button class="snap-x" id="snapClose" title="닫기" aria-label="닫기">✕</button>
+      </div>
+      <div class="snap-save-row">
+        <input type="text" id="snapName" placeholder="스냅샷 이름 (예: 11:10조 마감 직전)" maxlength="40" />
+        <button class="snap-btn" id="snapSaveBtn">💾 현재 상태 저장</button>
+      </div>
+      <div class="snap-list" id="snapList"></div>
+    </div>
+  </div>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="js/config.js"></script>
   <script src="js/time.js"></script>
   <script src="js/pack.js"></script>
   <script src="js/pick.js"></script>
   <script src="js/capture.js"></script>
+  <script src="js/summary.js"></script>
+  <script src="js/exportsnap.js"></script>
+  <script src="js/alerts.js"></script>
   <script src="js/main.js"></script>
   <script type="module" src="js/firebase.js"></script>
 </body>

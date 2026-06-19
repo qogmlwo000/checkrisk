@@ -479,6 +479,11 @@ window.recomputePack = function () {
 
   renderPackRecommend(rows);
   renderAIGuide(rows, now, preExsd);
+
+  // 종합 현황 요약 바에서 참조할 수 있도록 노출
+  window.__packRows = rows;
+  window.__packPreExsd = preExsd;
+  if (window.refreshSummary) window.refreshSummary();
 };
 
 // ============== PACK 충원 추천 (카테고리 교차 허용) ==============

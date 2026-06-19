@@ -20,6 +20,9 @@ function tick() {
   topbar.classList.toggle("urgent", remainMin <= window.THRESHOLDS.URGENT_REMAIN_MIN);
   topbar.classList.toggle("critical", remainMin <= window.THRESHOLDS.CRITICAL_REMAIN_MIN);
 
+  // 긴급 알림(플래시·소리·브라우저 알림) — 임계 시간 교차 감지
+  if (window.alertTick) window.alertTick(remainMin, label);
+
   if (window.recomputePack) window.recomputePack();
   if (window.recomputePick) window.recomputePick();
 }
@@ -283,8 +286,13 @@ document.addEventListener("DOMContentLoaded", () => {
   bindThemeToggle();
   populateExsdSelector();
 
+  // v2: 종합 요약 바 / 내보내기·스냅샷 / 긴급 알림
+  if (window.initExportSnap) window.initExportSnap();
+  if (window.initAlerts) window.initAlerts();
+
   tick();
   renderExsdChips();
+  if (window.refreshSummary) window.refreshSummary();
 
   setInterval(tick, 1000);
   setInterval(renderExsdChips, 60 * 1000);

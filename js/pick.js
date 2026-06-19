@@ -256,6 +256,11 @@ window.recomputePick = function () {
   });
 
   renderPickRecommend(rows, now, nextExsd);
+
+  // 종합 현황 요약 바에서 참조할 수 있도록 노출
+  window.__pickRows = rows;
+  window.__pickNextExsd = nextExsd;
+  if (window.refreshSummary) window.refreshSummary();
 };
 
 // ============== PICK 층간 충원 추천 ==============
