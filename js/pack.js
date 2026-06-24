@@ -284,32 +284,39 @@ function updatePackRowUI(tr, row, calc) {
   const preExsdTxt = calc.preExsd ? window.hhmm(calc.preExsd) : "";
   const allBacklogTime = isFinite(calc.allBacklogHours) ? formatHoursMin(calc.allBacklogHours) : "—";
 
+  const capaTxt = calc.expectedCapa.toLocaleString();
+  const allBacklogTxt = row.allBacklog.toLocaleString();
+  // desc 공통 줄: 헤더 칩 · 처리 능력 · 누적 All Backlog(있을 때만)
+  const headerChip = `<span class="basis">⏱ Exsd 10분전 ${preExsdTxt} 기준</span>`;
+  const capacityLine =
+    `<span class="dl">현 인원 <b>${row.currHC}명</b> × HTP <b>${row.htp}</b> = <b>${ratePerHTxt}</b> · 잔여 <b>${remainTxt}</b> → <b>${capaTxt} Unit</b> 출고</span>`;
+  const allBacklogLine = row.allBacklog > 0
+    ? `<span class="dl sub2">누적 All Backlog <b>${allBacklogTxt}</b> → 현 인원 그대로 약 <b>${allBacklogTime}</b></span>`
+    : "";
+  // 줄들을 .desc-inner 로 감싸 "블록은 가운데, 내부 줄은 같은 좌측 기준선"으로 정렬
+  const wrapDesc = (verdictLine) =>
+    `<span class="desc-inner">${headerChip}${capacityLine}${verdictLine}${allBacklogLine}</span>`;
+
   if (calc.shortage > 0) {
     riskCell.className = "risk-cell risk-on";
-    riskCell.innerHTML = `<span class="dual-line">🚨Risk ─ <b>${calc.shortage.toLocaleString()} Unit</b> / <b>+${calc.extraHC} HC</b> 충원 필요 추정<span class="sub">(Exsd 10분전 ${preExsdTxt} 기준)</span></span>`;
+    riskCell.innerHTML = `<span class="dual-line">🚨 Risk · <b>${calc.shortage.toLocaleString()} Unit</b> / <b>+${calc.extraHC} HC</b> 필요<span class="sub">10분전 ${preExsdTxt} 기준</span></span>`;
     if (descCell) {
       descCell.className = "pack-row-desc has-risk";
-      descCell.innerHTML =
-        `<span class="basis">Exsd 10분전(${preExsdTxt}) 기준</span>` +
-        `현 <b>${row.currHC}명</b> × HTP <b>${row.htp}</b> = <b>${ratePerHTxt}</b>, ` +
-        `남은 <b>${remainTxt}</b> 동안 <b>${calc.expectedCapa.toLocaleString()} Unit</b> 출고 가능 → ` +
-        `Backlog <b>${row.backlog.toLocaleString()}</b> 중 <b class="k-risk">${calc.shortage.toLocaleString()} Unit 부족</b> → ` +
-        `<b class="k-risk">+${calc.extraHC} HC</b> 더 투입 시 마감 가능. ` +
-        `All Exsd Backlog <b>${row.allBacklog.toLocaleString()}</b>은 현 인원 그대로면 약 <b>${allBacklogTime}</b> 소요.`;
+      descCell.innerHTML = wrapDesc(
+        `<span class="dl">Backlog <b>${row.backlog.toLocaleString()}</b> → <b class="k-risk">${calc.shortage.toLocaleString()} Unit 부족</b> · <b class="k-risk">+${calc.extraHC} HC</b> 투입 시 마감</span>`
+      );
     }
   } else {
     riskCell.className = "risk-cell risk-off";
     const slackTxt = calc.slack > 0 ? `여유 ${calc.slack.toLocaleString()} Unit` : "동률";
-    riskCell.textContent = `✅ 안전 (${slackTxt})`;
+    riskCell.textContent = `✅ 안전 · ${slackTxt}`;
     if (descCell) {
       descCell.className = "pack-row-desc";
-      descCell.innerHTML =
-        `<span class="basis">Exsd 10분전(${preExsdTxt}) 기준</span>` +
-        `현 <b>${row.currHC}명</b> × HTP <b>${row.htp}</b> = <b>${ratePerHTxt}</b>, ` +
-        `남은 <b>${remainTxt}</b> 동안 <b>${calc.expectedCapa.toLocaleString()} Unit</b> 출고 가능 → ` +
-        `Backlog <b>${row.backlog.toLocaleString()}</b> 대비 ` +
-        (calc.slack > 0 ? `<b class="k-ok">+${calc.slack.toLocaleString()} Unit 여유</b>. ` : `동률. `) +
-        `All Exsd Backlog <b>${row.allBacklog.toLocaleString()}</b>은 현 인원 그대로면 약 <b>${allBacklogTime}</b> 소요.`;
+      descCell.innerHTML = wrapDesc(
+        `<span class="dl">Backlog <b>${row.backlog.toLocaleString()}</b> 대비 ` +
+        (calc.slack > 0 ? `<b class="k-ok">+${calc.slack.toLocaleString()} Unit 여유</b>` : `동률`) +
+        `</span>`
+      );
     }
   }
 }

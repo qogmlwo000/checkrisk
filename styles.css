@@ -493,18 +493,18 @@ input[type=number] { -moz-appearance: textfield; }
 .pack-row-desc {
   font-size: 12px;
   color: var(--text-dim);
-  padding: 7px 14px 10px;
+  padding: 8px 14px 10px;
   background: var(--row-desc-bg);
   border-bottom: 1px solid var(--border-soft);
-  line-height: 1.6;
-  text-align: left;
+  line-height: 1.5;
+  text-align: center;
 }
 .pack-row-desc b { color: var(--text); }
 .pack-row-desc.has-risk b.k-risk { color: var(--danger); }
 .pack-row-desc b.k-ok { color: var(--ok); }
 .pack-row-desc .basis {
   display: inline-block;
-  margin-right: 8px;
+  margin-bottom: 5px;
   padding: 2px 8px;
   background: var(--accent-soft);
   color: var(--accent);
@@ -513,6 +513,11 @@ input[type=number] { -moz-appearance: textfield; }
   font-size: 10.5px;
   letter-spacing: 0.3px;
 }
+/* 설명문: 블록도 줄도 모두 가운데 정렬 */
+.pack-table td.pack-row-desc { text-align: center; }
+.pack-row-desc .desc-inner { display: block; text-align: center; }
+.pack-row-desc .dl { display: block; margin-top: 3px; }
+.pack-row-desc .dl.sub2 { color: var(--text-muted); font-size: 11px; margin-top: 4px; }
 .dual-line { line-height: 1.35; }
 .dual-line .sub {
   display: block;
@@ -521,6 +526,7 @@ input[type=number] { -moz-appearance: textfield; }
   font-weight: 500;
   margin-top: 2px;
 }
+.dual-line .sub b { color: var(--text); font-weight: 700; }
 .eta-pack {
   display: inline-block;
   margin-top: 3px;
@@ -771,13 +777,20 @@ input[type=number] { -moz-appearance: textfield; }
   max-width: 92vw; max-height: 78vh;
   border: 1px solid #444; border-radius: 6px; background: var(--bg);
 }
-#captureModal .modal-close {
+#captureModal .modal-actions {
   margin-top: 12px;
+  display: flex; gap: 10px; align-items: center; justify-content: center;
+}
+#captureModal .modal-save,
+#captureModal .modal-close {
   font-family: 'Pretendard', sans-serif; font-size: 13px; font-weight: 700;
   padding: 7px 18px; border-radius: 8px;
   border: 1px solid #555; background: #1c232c; color: #fff;
   cursor: pointer;
 }
+#captureModal .modal-save { background: #2563eb; border-color: #2563eb; }
+#captureModal .modal-save:hover { background: #1d4ed8; }
+#captureModal .modal-close:hover { background: #262f3a; }
 
 /* ============== Responsive ============== */
 @media (max-width: 1100px) {

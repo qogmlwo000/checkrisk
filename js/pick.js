@@ -6,7 +6,7 @@ function floorId(name) {
   return "pick_" + name.replace(/[^\w가-힣]/g, "_");
 }
 
-const PICK_COL_WIDTHS = ["8%","10%","10%","10%","9%","9%","13%","9%","22%"];
+const PICK_COL_WIDTHS = ["7%","10%","9%","9%","8%","8%","18%","9%","22%"];
 
 window.renderPickTable = function () {
   const table = document.getElementById("pickTable");
@@ -192,10 +192,10 @@ function updatePickRowUI(tr, row, calc) {
   if (row.currHC > 0 && row.htp > 0) {
     let html =
       `<span class="dual-line"><b>${calc.rate.toLocaleString()} Unit/h</b>` +
-      `<span class="sub">Exsd까지 ${formatHoursMinPick(calc.cur.remainH)} ⇒ ${calc.cur.expectedPick.toLocaleString()} Unit</span>`;
+      `<span class="sub">현재 ${formatHoursMinPick(calc.cur.remainH)} → <b>${calc.cur.expectedPick.toLocaleString()}</b> Unit</span>`;
     if (calc.singu && !calc.singu.passed) {
       html +=
-        `<span class="sub singu">단일 ${calc.singu.label} 기준 (${calc.singu.exsdLabel} 마감) ${formatHoursMinPick(calc.singu.remainH)} ⇒ ${calc.singu.expectedPick.toLocaleString()} Unit</span>`;
+        `<span class="sub singu">단일 ${calc.singu.label} ${formatHoursMinPick(calc.singu.remainH)} → <b>${calc.singu.expectedPick.toLocaleString()}</b> Unit</span>`;
     }
     html += `</span>`;
     ep.innerHTML = html;
